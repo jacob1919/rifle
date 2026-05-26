@@ -1,0 +1,56 @@
+# Local IDE state
+.vs/
+.vscode/.browse.VC.db*
+.vscode/ipch/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# CMake and build outputs
+build/
+build-*/
+cmake-build-*/
+out/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+Testing/
+
+# Visual Studio/MSBuild outputs
+Debug/
+Release/
+RelWithDebInfo/
+MinSizeRel/
+x64/
+x86/
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+*.ilk
+*.pdb
+*.idb
+*.obj
+*.lib
+*.dll
+*.exe
+*.exp
+*.lastbuildstate
+*.tlog
+*.recipe
+
+# Runtime artifacts and logs
+*.log
+*.tmp
+*.cache
+*.dmp
+
+# Model files should not be committed to GitHub.
+models/
+*.gguf
+*.bin
+*.safetensors
+*.onnx
+
