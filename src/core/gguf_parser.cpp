@@ -5,6 +5,7 @@
 #include <bit>
 #include <cstddef>
 #include <fstream>
+#include <limits>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -18,6 +19,20 @@ namespace {
 constexpr std::uint64_t kMaxStringBytes = 256ull * 1024ull * 1024ull;
 constexpr std::uint64_t kMaxArrayItems = 10ull * 1000ull * 1000ull;
 constexpr std::uint32_t kMaxTensorRank = 8;
+
+std::uint64_t checked_multiply(std::uint64_t lhs, std::uint64_t rhs, std::string_view context) {
+    if (lhs != 0 && rhs > std::numeric_limits<std::uint64_t>::max() / lhs) {
+        throw std::overflow_error("uint64 overflow while computing " + std::string(context));
+    }
+    return lhs * rhs;
+}
+
+std::uint64_t checked_add(std::uint64_t lhs, std::uint64_t rhs, std::string_view context) {
+    if (rhs > std::numeric_limits<std::uint64_t>::max() - lhs) {
+        throw std::overflow_error("uint64 overflow while computing " + std::string(context));
+    }
+    return lhs + rhs;
+}
 
 void read_exact(std::istream& input, char* destination, std::streamsize size, const std::string& field_name) {
     if (!input.read(destination, size)) {
@@ -222,6 +237,49 @@ const GgufMetadataValue* GgufParser::find_metadata(std::string_view key) const n
     return nullptr;
 }
 
+const GgufTensorInfo* GgufParser::find_tensor(std::string_view name) const noexcept {
+    for (const GgufTensorInfo& tensor : info_.tensors) {
+        if (tensor.name == name) {
+            return &tensor;
+        }
+    }
+    return nullptr;
+}
+
+std::vector<std::byte> GgufParser::read_tensor_bytes(const GgufTensorInfo& tensor) const {
+    const std::uint64_t size = tensor.byte_size();
+    if (size > static_cast<std::uint64_t>(std::numeric_limits<std::streamsize>::max())) {
+        throw std::runtime_error("Tensor is too large to read with std::istream: " + tensor.name);
+    }
+
+    std::vector<std::byte> bytes(static_cast<std::size_t>(size));
+    if (bytes.empty()) {
+        return bytes;
+    }
+
+    std::ifstream input(path_, std::ios::binary);
+    if (!input) {
+        throw std::runtime_error("Failed to open GGUF file: " + path_);
+    }
+
+    const std::uint64_t file_offset = tensor.absolute_offset(info_.tensor_data_offset);
+    input.seekg(static_cast<std::streamoff>(file_offset), std::ios::beg);
+    if (!input) {
+        throw std::runtime_error("Failed to seek tensor data: " + tensor.name);
+    }
+
+    read_exact(input, reinterpret_cast<char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()), "tensor.data." + tensor.name);
+    return bytes;
+}
+
+std::optional<std::vector<std::byte>> GgufParser::read_tensor_bytes(std::string_view tensor_name) const {
+    const GgufTensorInfo* tensor = find_tensor(tensor_name);
+    if (tensor == nullptr) {
+        return std::nullopt;
+    }
+    return read_tensor_bytes(*tensor);
+}
+
 GgufHeader GgufParser::read_header(const std::string& path) {
     std::ifstream input(path, std::ios::binary);
     if (!input) {
@@ -412,9 +470,138 @@ std::string to_string(GgmlTensorType type) {
         return "TQ1_0";
     case GgmlTensorType::TQ2_0:
         return "TQ2_0";
+    case GgmlTensorType::MXFP4:
+        return "MXFP4";
+    case GgmlTensorType::NVFP4:
+        return "NVFP4";
+    case GgmlTensorType::Q1_0:
+        return "Q1_0";
     default:
         return "UNKNOWN(" + std::to_string(static_cast<std::uint32_t>(type)) + ")";
     }
+}
+
+GgmlTypeInfo ggml_type_info(GgmlTensorType type) {
+    switch (type) {
+    case GgmlTensorType::F32:
+        return {"f32", 1, 4, false};
+    case GgmlTensorType::F16:
+        return {"f16", 1, 2, false};
+    case GgmlTensorType::Q4_0:
+        return {"q4_0", 32, 18, true};
+    case GgmlTensorType::Q4_1:
+        return {"q4_1", 32, 20, true};
+    case GgmlTensorType::Q5_0:
+        return {"q5_0", 32, 22, true};
+    case GgmlTensorType::Q5_1:
+        return {"q5_1", 32, 24, true};
+    case GgmlTensorType::Q8_0:
+        return {"q8_0", 32, 34, true};
+    case GgmlTensorType::Q8_1:
+        return {"q8_1", 32, 36, true};
+    case GgmlTensorType::Q2_K:
+        return {"q2_K", 256, 84, true};
+    case GgmlTensorType::Q3_K:
+        return {"q3_K", 256, 110, true};
+    case GgmlTensorType::Q4_K:
+        return {"q4_K", 256, 144, true};
+    case GgmlTensorType::Q5_K:
+        return {"q5_K", 256, 176, true};
+    case GgmlTensorType::Q6_K:
+        return {"q6_K", 256, 210, true};
+    case GgmlTensorType::Q8_K:
+        return {"q8_K", 256, 292, true};
+    case GgmlTensorType::IQ2_XXS:
+        return {"iq2_xxs", 256, 66, true};
+    case GgmlTensorType::IQ2_XS:
+        return {"iq2_xs", 256, 74, true};
+    case GgmlTensorType::IQ3_XXS:
+        return {"iq3_xxs", 256, 98, true};
+    case GgmlTensorType::IQ1_S:
+        return {"iq1_s", 256, 50, true};
+    case GgmlTensorType::IQ4_NL:
+        return {"iq4_nl", 32, 18, true};
+    case GgmlTensorType::IQ3_S:
+        return {"iq3_s", 256, 110, true};
+    case GgmlTensorType::IQ2_S:
+        return {"iq2_s", 256, 82, true};
+    case GgmlTensorType::IQ4_XS:
+        return {"iq4_xs", 256, 136, true};
+    case GgmlTensorType::I8:
+        return {"i8", 1, 1, false};
+    case GgmlTensorType::I16:
+        return {"i16", 1, 2, false};
+    case GgmlTensorType::I32:
+        return {"i32", 1, 4, false};
+    case GgmlTensorType::I64:
+        return {"i64", 1, 8, false};
+    case GgmlTensorType::F64:
+        return {"f64", 1, 8, false};
+    case GgmlTensorType::IQ1_M:
+        return {"iq1_m", 256, 56, true};
+    case GgmlTensorType::BF16:
+        return {"bf16", 1, 2, false};
+    case GgmlTensorType::TQ1_0:
+        return {"tq1_0", 256, 54, true};
+    case GgmlTensorType::TQ2_0:
+        return {"tq2_0", 256, 66, true};
+    case GgmlTensorType::MXFP4:
+        return {"mxfp4", 32, 17, true};
+    case GgmlTensorType::NVFP4:
+        return {"nvfp4", 64, 36, true};
+    case GgmlTensorType::Q1_0:
+        return {"q1_0", 128, 18, true};
+    default:
+        throw std::runtime_error("Unknown GGML tensor type: " + to_string(type));
+    }
+}
+
+bool is_known_ggml_type(GgmlTensorType type) {
+    try {
+        (void)ggml_type_info(type);
+        return true;
+    } catch (const std::runtime_error&) {
+        return false;
+    }
+}
+
+std::uint64_t ggml_row_size(GgmlTensorType type, std::uint64_t row_elements) {
+    const GgmlTypeInfo info = ggml_type_info(type);
+    if (info.block_size == 0 || info.type_size == 0) {
+        throw std::runtime_error("Invalid GGML type size metadata for " + to_string(type));
+    }
+    if (row_elements % info.block_size != 0) {
+        throw std::runtime_error(
+            "Tensor row element count " + std::to_string(row_elements) +
+            " is not divisible by block size " + std::to_string(info.block_size) +
+            " for " + to_string(type)
+        );
+    }
+    return checked_multiply(row_elements / info.block_size, info.type_size, "GGML row size");
+}
+
+std::uint64_t GgufTensorInfo::element_count() const {
+    std::uint64_t count = 1;
+    for (std::uint64_t dimension : dimensions) {
+        count = checked_multiply(count, dimension, "GGUF tensor element count");
+    }
+    return count;
+}
+
+std::uint64_t GgufTensorInfo::byte_size() const {
+    if (dimensions.empty()) {
+        return 0;
+    }
+
+    std::uint64_t rows = 1;
+    for (std::size_t i = 1; i < dimensions.size(); ++i) {
+        rows = checked_multiply(rows, dimensions[i], "GGUF tensor row count");
+    }
+    return checked_multiply(ggml_row_size(type, dimensions[0]), rows, "GGUF tensor byte size");
+}
+
+std::uint64_t GgufTensorInfo::absolute_offset(std::uint64_t tensor_data_offset) const {
+    return checked_add(tensor_data_offset, offset, "GGUF tensor absolute offset");
 }
 
 std::string summarize_metadata_value(const GgufMetadataValue& value, std::size_t max_array_items) {

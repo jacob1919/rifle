@@ -8,6 +8,7 @@ project(rifle
 
 add_library(rifle_core STATIC
     src/core/gguf_parser.cpp
+    src/core/tensor.cpp
 )
 
 target_compile_features(rifle_core PUBLIC cxx_std_20)
@@ -29,4 +30,3 @@ add_executable(rifle-gguf-info
 )
 
 target_link_libraries(rifle-gguf-info PRIVATE rifle_core)
-

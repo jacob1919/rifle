@@ -8,9 +8,11 @@ Rifle is a hands-on C++ inference engine project. The current stage focuses on p
 - GGUF header parsing.
 - GGUF metadata parsing.
 - GGUF tensor directory parsing.
+- GGML tensor storage size calculation.
+- Runtime tensor descriptor mapping.
 - `rifle-gguf-info` inspection tool.
 
-The parser reads model metadata and tensor descriptors only. It does not load tensor weight data yet.
+The parser reads model metadata and tensor descriptors. It can also read raw tensor bytes on demand, but it does not dequantize or execute tensor operations yet.
 
 ## Build
 
@@ -34,4 +36,3 @@ X:\rifle\build-vs2022\Debug\rifle-gguf-info.exe X:\path\to\model.gguf --all
 ## Notes
 
 Model files are intentionally ignored by Git. Keep `.gguf`, `.safetensors`, `.onnx`, and other large artifacts outside version control.
-

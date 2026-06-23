@@ -1,4 +1,5 @@
 #include "core/gguf_parser.h"
+#include "core/tensor.h"
 
 #include <algorithm>
 #include <exception>
@@ -14,17 +15,6 @@ bool has_flag(int argc, char** argv, std::string_view flag) {
         }
     }
     return false;
-}
-
-void print_dimensions(const std::vector<std::uint64_t>& dimensions) {
-    std::cout << '[';
-    for (std::size_t i = 0; i < dimensions.size(); ++i) {
-        if (i > 0) {
-            std::cout << ", ";
-        }
-        std::cout << dimensions[i];
-    }
-    std::cout << ']';
 }
 
 } // namespace
@@ -62,10 +52,15 @@ int main(int argc, char** argv) {
         std::cout << "\ntensors:\n";
         for (std::size_t i = 0; i < tensor_limit; ++i) {
             const rifle::GgufTensorInfo& tensor = parser.tensors()[i];
-            std::cout << "  " << tensor.name << " "
-                      << rifle::to_string(tensor.type) << " dims=";
-            print_dimensions(tensor.dimensions);
-            std::cout << " offset=" << tensor.offset << '\n';
+            const rifle::TensorDesc desc = rifle::make_tensor_desc(tensor, parser.tensor_data_offset());
+            std::cout << "  " << desc.name << " "
+                      << rifle::to_string(desc.storage_type)
+                      << " dims=" << rifle::shape_to_string(desc.shape)
+                      << " elements=" << desc.element_count
+                      << " bytes=" << desc.byte_size
+                      << " rel_offset=" << tensor.offset
+                      << " file_offset=" << desc.file_offset
+                      << '\n';
         }
         if (tensor_limit < parser.tensors().size()) {
             std::cout << "  ... " << (parser.tensors().size() - tensor_limit) << " more tensors. Use --all to print all.\n";

@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -56,6 +57,16 @@ enum class GgmlTensorType : std::uint32_t {
     BF16 = 30,
     TQ1_0 = 34,
     TQ2_0 = 35,
+    MXFP4 = 39,
+    NVFP4 = 40,
+    Q1_0 = 41,
+};
+
+struct GgmlTypeInfo {
+    std::string_view name;
+    std::uint32_t block_size = 0;
+    std::uint32_t type_size = 0;
+    bool quantized = false;
 };
 
 struct GgufHeader {
@@ -85,6 +96,10 @@ struct GgufTensorInfo {
     std::vector<std::uint64_t> dimensions;
     GgmlTensorType type = GgmlTensorType::F32;
     std::uint64_t offset = 0;
+
+    [[nodiscard]] std::uint64_t element_count() const;
+    [[nodiscard]] std::uint64_t byte_size() const;
+    [[nodiscard]] std::uint64_t absolute_offset(std::uint64_t tensor_data_offset) const;
 };
 
 struct GgufFileInfo {
@@ -96,6 +111,9 @@ struct GgufFileInfo {
 
 [[nodiscard]] std::string to_string(GgufMetadataType type);
 [[nodiscard]] std::string to_string(GgmlTensorType type);
+[[nodiscard]] GgmlTypeInfo ggml_type_info(GgmlTensorType type);
+[[nodiscard]] bool is_known_ggml_type(GgmlTensorType type);
+[[nodiscard]] std::uint64_t ggml_row_size(GgmlTensorType type, std::uint64_t row_elements);
 [[nodiscard]] std::string summarize_metadata_value(const GgufMetadataValue& value, std::size_t max_array_items = 6);
 
 class GgufParser {
@@ -109,6 +127,9 @@ public:
     [[nodiscard]] std::uint64_t tensor_data_offset() const noexcept;
     [[nodiscard]] const GgufFileInfo& info() const noexcept;
     [[nodiscard]] const GgufMetadataValue* find_metadata(std::string_view key) const noexcept;
+    [[nodiscard]] const GgufTensorInfo* find_tensor(std::string_view name) const noexcept;
+    [[nodiscard]] std::vector<std::byte> read_tensor_bytes(const GgufTensorInfo& tensor) const;
+    [[nodiscard]] std::optional<std::vector<std::byte>> read_tensor_bytes(std::string_view tensor_name) const;
 
     static GgufHeader read_header(const std::string& path);
 
