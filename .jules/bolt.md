@@ -1,0 +1,3 @@
+## 2024-10-24 - Zero-copy string passing & native endianness fast path
+**Learning:** High-frequency binary parsing functions like `read_exact` and `read_little_endian` were accepting `const std::string& field_name`, causing heap allocations when string literals exceeding the Small String Optimization (SSO) limit (15 bytes in libstdc++) were passed. Also, `read_little_endian` was manually reconstructing integers byte-by-byte on all architectures, ignoring the fact that modern hardware is mostly little-endian.
+**Action:** Always prefer `std::string_view` over `const std::string&` for read-only string parameters, especially in hot paths. Utilize C++20 `std::endian::native` with `if constexpr` to implement zero-cost fast paths for endian conversions.
