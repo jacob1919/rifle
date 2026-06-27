@@ -1,0 +1,3 @@
+## 2023-10-27 - [Preventing heap allocations in high-frequency parsing paths]
+**Learning:** Parsing routines like `read_exact` or `read_little_endian` in GGUF parser often take string literals for field names for debugging or error context. Taking these parameters as `const std::string&` incurs implicit heap allocations on every call for strings larger than SSO (Small String Optimization) limit, creating a measurable performance bottleneck over millions of fields.
+**Action:** Always prefer `std::string_view` over `const std::string&` for string arguments that are typically passed as string literals in high-frequency/hot paths.
