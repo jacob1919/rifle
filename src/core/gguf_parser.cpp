@@ -34,14 +34,14 @@ std::uint64_t checked_add(std::uint64_t lhs, std::uint64_t rhs, std::string_view
     return lhs + rhs;
 }
 
-void read_exact(std::istream& input, char* destination, std::streamsize size, const std::string& field_name) {
+void read_exact(std::istream& input, char* destination, std::streamsize size, std::string_view field_name) {
     if (!input.read(destination, size)) {
-        throw std::runtime_error("Failed to read GGUF field: " + field_name);
+        throw std::runtime_error("Failed to read GGUF field: " + std::string(field_name));
     }
 }
 
 template <typename T>
-T read_little_endian(std::istream& input, const std::string& field_name) {
+T read_little_endian(std::istream& input, std::string_view field_name) {
     static_assert(std::is_unsigned_v<T>, "GGUF little-endian helper expects unsigned integer types");
 
     std::array<unsigned char, sizeof(T)> bytes{};
@@ -65,25 +65,25 @@ std::uint64_t align_to(std::uint64_t value, std::uint64_t alignment) {
     return value + alignment - remainder;
 }
 
-std::string read_string(std::istream& input, std::string_view field_name) {
-    const std::uint64_t size = read_little_endian<std::uint64_t>(input, std::string(field_name) + ".size");
+std::string read_string(std::istream& input) {
+    const std::uint64_t size = read_little_endian<std::uint64_t>(input, "string_size");
     if (size > kMaxStringBytes) {
         throw std::runtime_error("GGUF string is too large: " + std::to_string(size));
     }
 
     std::string value(static_cast<std::size_t>(size), '\0');
     if (!value.empty()) {
-        read_exact(input, value.data(), static_cast<std::streamsize>(value.size()), std::string(field_name) + ".bytes");
+        read_exact(input, value.data(), static_cast<std::streamsize>(value.size()), "string_bytes");
     }
     return value;
 }
 
-float read_float32(std::istream& input, const std::string& field_name) {
+float read_float32(std::istream& input, std::string_view field_name) {
     const std::uint32_t raw = read_little_endian<std::uint32_t>(input, field_name);
     return std::bit_cast<float>(raw);
 }
 
-double read_float64(std::istream& input, const std::string& field_name) {
+double read_float64(std::istream& input, std::string_view field_name) {
     const std::uint64_t raw = read_little_endian<std::uint64_t>(input, field_name);
     return std::bit_cast<double>(raw);
 }
@@ -137,7 +137,7 @@ GgufMetadataValue read_metadata_value(std::istream& input, GgufMetadataType type
         value.bool_value = read_little_endian<std::uint8_t>(input, "metadata.bool") != 0;
         return value;
     case GgufMetadataType::String:
-        value.string_value = read_string(input, "metadata.string");
+        value.string_value = read_string(input);
         return value;
     case GgufMetadataType::Array:
         return read_array(input);
@@ -268,7 +268,7 @@ std::vector<std::byte> GgufParser::read_tensor_bytes(const GgufTensorInfo& tenso
         throw std::runtime_error("Failed to seek tensor data: " + tensor.name);
     }
 
-    read_exact(input, reinterpret_cast<char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()), "tensor.data." + tensor.name);
+    read_exact(input, reinterpret_cast<char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()), "tensor.data");
     return bytes;
 }
 
@@ -328,7 +328,7 @@ GgufFileInfo GgufParser::parse_file(const std::string& path) {
     info.metadata.reserve(static_cast<std::size_t>(info.header.metadata_kv_count));
     for (std::uint64_t i = 0; i < info.header.metadata_kv_count; ++i) {
         GgufMetadataEntry entry;
-        entry.key = read_string(input, "metadata.key");
+        entry.key = read_string(input);
         const auto type = static_cast<GgufMetadataType>(read_little_endian<std::uint32_t>(input, "metadata.type"));
         entry.value = read_metadata_value(input, type);
         info.metadata.push_back(std::move(entry));
@@ -337,7 +337,7 @@ GgufFileInfo GgufParser::parse_file(const std::string& path) {
     info.tensors.reserve(static_cast<std::size_t>(info.header.tensor_count));
     for (std::uint64_t i = 0; i < info.header.tensor_count; ++i) {
         GgufTensorInfo tensor;
-        tensor.name = read_string(input, "tensor.name");
+        tensor.name = read_string(input);
 
         const std::uint32_t rank = read_little_endian<std::uint32_t>(input, "tensor.rank");
         if (rank == 0 || rank > kMaxTensorRank) {
