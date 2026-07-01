@@ -1,0 +1,3 @@
+## 2024-05-24 - Prefer string_view over const string& for high-frequency string parameters
+**Learning:** In high-frequency parsing paths, such as reading GGUF metadata or formatting strings for error messages/lookups, passing string literals to functions accepting `const std::string&` triggers implicit and unnecessary heap allocations. Using `std::string_view` instead avoids this entirely.
+**Action:** When designing or refactoring hot parsing methods (e.g., `read_exact`, `read_little_endian`, etc.), prefer `std::string_view` over `const std::string&` for parameter types to eliminate heap allocation bottlenecks.
