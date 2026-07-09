@@ -1,0 +1,3 @@
+## 2024-07-09 - Prefer std::string_view for string parameters in high-frequency parsing paths
+**Learning:** Using `const std::string&` in parsing functions like `read_little_endian` causes unnecessary heap allocations when passing string literals because a temporary `std::string` is constructed for every call. In a file with hundreds of tensors and metadata, this adds up.
+**Action:** Always prefer `std::string_view` over `const std::string&` for string arguments that are just read or passed around. Only convert to `std::string` when absolutely necessary, such as when concatenating strings for exception messages.
