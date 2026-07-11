@@ -1,0 +1,3 @@
+## 2024-10-25 - GGUF Parser String Allocations
+**Learning:** High-frequency parsing operations (like reading metadata or individual tensor metadata blocks) pass string literals ("metadata.key", "tensor.name", etc.) extensively to utility functions. Using `const std::string&` causes implicit heap allocations for every single call because these are literals.
+**Action:** Always prefer `std::string_view` for string parameters in high-frequency parsing paths or generic IO helpers to avoid hidden string heap allocations from literals. Only explicitly allocate by converting `std::string_view` to `std::string` on slow/error paths (e.g. exception messages).
