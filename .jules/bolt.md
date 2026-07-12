@@ -1,0 +1,3 @@
+## 2024-05-24 - [Avoid heap allocations during heavy parsing loop]
+**Learning:** In the GGUF parsing loops, passing string literals as `const std::string&` for parameter names like `field_name` forces implicit heap allocations due to std::string construction for every single read operation. Since these operations happen millions of times, this leads to significant overhead.
+**Action:** Prefer `std::string_view` over `const std::string&` for string parameters in high-frequency parsing paths to prevent heap allocations from string literals. Explicitly convert `std::string_view` to `std::string` when using `operator+` for string concatenation (e.g., in exception messages).
