@@ -131,10 +131,10 @@ public:
     [[nodiscard]] std::vector<std::byte> read_tensor_bytes(const GgufTensorInfo& tensor) const;
     [[nodiscard]] std::optional<std::vector<std::byte>> read_tensor_bytes(std::string_view tensor_name) const;
 
-    static GgufHeader read_header(const std::string& path);
+    static GgufHeader read_header(std::string_view path);
 
 private:
-    static GgufFileInfo parse_file(const std::string& path);
+    static GgufFileInfo parse_file(std::string_view path);
 
     std::string path_;
     GgufFileInfo info_;
