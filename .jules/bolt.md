@@ -1,0 +1,3 @@
+## 2024-07-14 - Prevent heap allocations from string literals in high-frequency parsing paths
+**Learning:** Using `const std::string&` for parameter types in high-frequency functions can cause unnecessary heap allocations when passing string literals, which can become a performance bottleneck in I/O bound parsers like GGUF.
+**Action:** Prefer `std::string_view` over `const std::string&` for string parameters in high-frequency parsing paths to prevent heap allocations from string literals. Explicitly convert `std::string_view` to `std::string` when using `operator+` for string concatenation (e.g., in exception messages).
