@@ -1,0 +1,3 @@
+## 2024-07-19 - Avoid Heap Allocations from String Literals in Parsing Paths
+**Learning:** Using `const std::string&` for parameter types in frequently called parsing utility functions (like `read_exact` and `read_little_endian`) causes implicit heap allocations when called with string literals (e.g., `read_exact(..., "tensor.rank")`). These heap allocations add significant overhead when parsing large metadata files like GGUF.
+**Action:** Use `std::string_view` for string parameters in high-frequency parsing paths. When concatenating strings for exception messages (which are rare cold paths), explicitly cast the `std::string_view` to `std::string` using `std::string(context)`.
