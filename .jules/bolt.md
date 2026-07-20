@@ -1,0 +1,3 @@
+## 2024-07-20 - String allocation bottleneck in GGUF parsing
+**Learning:** Using `const std::string&` for parameter names in high-frequency parsing paths like `read_little_endian` and `read_float32` causes excessive heap allocations due to implicit conversions from string literals. In parsing a 2.7GB model, this lead to over 32k unnecessary allocations.
+**Action:** Prefer `std::string_view` for string parameters in high-frequency parsing paths to prevent heap allocations from string literals. Explicitly convert `std::string_view` to `std::string` when using `operator+` for string concatenation (e.g., in exception messages).
