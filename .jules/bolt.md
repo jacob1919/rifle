@@ -1,0 +1,3 @@
+## 2024-03-24 - Prevent heap allocations in high-frequency parsing paths using string_view
+**Learning:** Using `const std::string&` in function parameters in high-frequency parsing paths causes unnecessary heap allocations when passing string literals. In this codebase, the GGUF parsing logic called `read_little_endian`, `read_exact`, `read_float32`, and `read_float64` for every field, resulting in almost 100,000 heap allocations when parsing a standard model header.
+**Action:** Always prefer `std::string_view` over `const std::string&` for string parameters in high-frequency paths to prevent heap allocations from string literals. Explicitly convert `std::string_view` to `std::string` when using `operator+` for string concatenation (e.g., in exception messages).
