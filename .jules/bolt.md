@@ -1,0 +1,3 @@
+## 2024-07-29 - Prevented string allocations in GGUF parser via std::string_view
+**Learning:** Using `const std::string&` for high-frequency internal helper functions like `read_exact` and `read_little_endian` was causing thousands of unnecessary heap allocations when called with string literals. `std::string_view` perfectly prevents these temporary string object allocations during parsing.
+**Action:** When a function's string parameter is often a string literal and doesn't need to take ownership, always prefer `std::string_view` over `const std::string&` in this codebase. Convert to `std::string` internally only when strictly necessary, such as for exceptions.

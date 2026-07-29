@@ -34,14 +34,15 @@ std::uint64_t checked_add(std::uint64_t lhs, std::uint64_t rhs, std::string_view
     return lhs + rhs;
 }
 
-void read_exact(std::istream& input, char* destination, std::streamsize size, const std::string& field_name) {
+// Use std::string_view for string literal parameters to avoid heap allocations
+void read_exact(std::istream& input, char* destination, std::streamsize size, std::string_view field_name) {
     if (!input.read(destination, size)) {
-        throw std::runtime_error("Failed to read GGUF field: " + field_name);
+        throw std::runtime_error("Failed to read GGUF field: " + std::string(field_name));
     }
 }
 
 template <typename T>
-T read_little_endian(std::istream& input, const std::string& field_name) {
+T read_little_endian(std::istream& input, std::string_view field_name) {
     static_assert(std::is_unsigned_v<T>, "GGUF little-endian helper expects unsigned integer types");
 
     std::array<unsigned char, sizeof(T)> bytes{};
@@ -78,12 +79,12 @@ std::string read_string(std::istream& input, std::string_view field_name) {
     return value;
 }
 
-float read_float32(std::istream& input, const std::string& field_name) {
+float read_float32(std::istream& input, std::string_view field_name) {
     const std::uint32_t raw = read_little_endian<std::uint32_t>(input, field_name);
     return std::bit_cast<float>(raw);
 }
 
-double read_float64(std::istream& input, const std::string& field_name) {
+double read_float64(std::istream& input, std::string_view field_name) {
     const std::uint64_t raw = read_little_endian<std::uint64_t>(input, field_name);
     return std::bit_cast<double>(raw);
 }
@@ -280,10 +281,10 @@ std::optional<std::vector<std::byte>> GgufParser::read_tensor_bytes(std::string_
     return read_tensor_bytes(*tensor);
 }
 
-GgufHeader GgufParser::read_header(const std::string& path) {
-    std::ifstream input(path, std::ios::binary);
+GgufHeader GgufParser::read_header(std::string_view path) {
+    std::ifstream input(std::string(path), std::ios::binary);
     if (!input) {
-        throw std::runtime_error("Failed to open GGUF file: " + path);
+        throw std::runtime_error("Failed to open GGUF file: " + std::string(path));
     }
 
     std::array<char, 4> magic{};
@@ -304,10 +305,10 @@ GgufHeader GgufParser::read_header(const std::string& path) {
     return header;
 }
 
-GgufFileInfo GgufParser::parse_file(const std::string& path) {
-    std::ifstream input(path, std::ios::binary);
+GgufFileInfo GgufParser::parse_file(std::string_view path) {
+    std::ifstream input(std::string(path), std::ios::binary);
     if (!input) {
-        throw std::runtime_error("Failed to open GGUF file: " + path);
+        throw std::runtime_error("Failed to open GGUF file: " + std::string(path));
     }
 
     std::array<char, 4> magic{};
