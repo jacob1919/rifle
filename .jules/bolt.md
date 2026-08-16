@@ -1,0 +1,3 @@
+## 2024-05-19 - Removed std::string allocations on GGUF parsing happy path
+**Learning:** High-frequency parsing paths like `read_little_endian` and `read_exact` were causing millions of unnecessary heap allocations by taking `const std::string&` and dynamically concatenating strings on the happy path (e.g., `std::string(field_name) + ".size"`). Converting to `std::string_view` and removing concatenations on the happy path is a significant win.
+**Action:** Always prefer `std::string_view` over `const std::string&` for string parameters in high-frequency parsing paths. Defer all `std::string` allocations and concatenations strictly to the error handling path (inside `throw` statements) to prevent unnecessary heap allocations.
