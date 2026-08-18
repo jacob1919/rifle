@@ -1,0 +1,3 @@
+## 2024-08-18 - String allocation in parser hot path
+**Learning:** High-frequency parser routines (`read_little_endian`, `read_exact`) used `const std::string&` instead of `std::string_view` for field names, triggering thousands of dynamic allocations during `.size` / `.bytes` concatenation. `callgrind` correctly identified this as ~35% of total instructions executed.
+**Action:** Replaced `const std::string&` with `std::string_view`, avoided `std::string` concatenation in the success/hot paths, and deferred `std::string` allocation specifically to the error paths (`throw std::runtime_error(...)`). Reduced Ir counts by ~35%.
