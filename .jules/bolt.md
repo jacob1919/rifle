@@ -1,0 +1,3 @@
+## 2024-05-24 - Avoid string allocations on happy path during parsing
+**Learning:** In high-frequency parsing functions (like `read_exact` and `read_little_endian` in `gguf_parser.cpp`), passing `std::string` parameters for error context causes millions of unnecessary heap allocations (e.g., from string concatenations like `field_name + ".size"`). Converting `field_name` to `std::string_view` and using an optional `suffix` avoids these allocations on the happy path.
+**Action:** Prefer `std::string_view` over `const std::string&` for string parameters in parsing hot paths, and defer any required `std::string` allocations/concatenations (like creating error messages) until they are actually needed (e.g., inside a `throw` block).
