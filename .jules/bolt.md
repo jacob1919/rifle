@@ -1,0 +1,3 @@
+## 2024-05-19 - Removed std::string allocations in high-frequency GGUF parser paths
+**Learning:** In C++ loops executing thousands of times (e.g. metadata parsing), passing `const std::string&` where strings are implicitly constructed from literal characters or concatenated during function calls (e.g., `read_little_endian(input, field_name + ".size")`) creates significant heap allocation overhead on the 'happy path' even when no error occurs.
+**Action:** Always prefer `std::string_view` for string parameters in high-frequency paths. Defer all `std::string` concatenation and allocation strictly to the error handling path (e.g. inside `throw`). Add a `suffix` parameter to functions that need to concatenate strings for error contexts.
