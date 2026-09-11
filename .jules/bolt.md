@@ -1,0 +1,3 @@
+## 2024-05-18 - Avoid std::string allocation on hot parsing paths
+**Learning:** In C++ binary parsing functions called frequently (like GGUF metadata parsing), passing string literals as `const std::string&` parameters or concatenating string context (e.g. `field_name + ".size"`) on the "happy path" leads to significant, measurable overhead due to temporary heap allocations.
+**Action:** Always prefer `std::string_view` for string parameters that do not need to take ownership. When generating context for error messages, defer all string concatenation to the error handling path (e.g., inside the exception throw statement) by passing optional `suffix` parameters to helper functions.
