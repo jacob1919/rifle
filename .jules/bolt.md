@@ -1,0 +1,3 @@
+## 2024-09-13 - [Deferred String Allocation Optimization]
+ **Learning:** [In high-frequency parsing paths like GGUF processing, passing standard string literals as suffixes for error context via string concatenations causes excessive heap allocations (e.g., `field_name + ".size"`). Converting parameters to `std::string_view` and passing suffixes individually, then deferring concatenation to the error handling path drastically reduces baseline memory allocation overhead.]
+ **Action:** [When optimizing hot paths that pass string contexts, always look for implicit `std::string` constructors and concatenations, and replace them with `std::string_view` passing, isolating standard string construction to the failure conditions.]
