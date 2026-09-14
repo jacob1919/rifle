@@ -1,0 +1,3 @@
+## 2026-09-14 - Defer String Concatenation to Error Path
+**Learning:** String literals concatenated dynamically on the 'happy path' (e.g. `field_name + \".size\"`) cause major performance bottlenecks due to heap allocations. By deferring concatenation to the error path and replacing `const std::string&` with `std::string_view` + an optional suffix parameter, allocations are vastly reduced.
+**Action:** Profile parsing code using Memcheck to find string allocation hotspots. When refactoring, avoid any dynamic allocations on the fast path; push exceptions and complex message constructions purely to the failure branches.
