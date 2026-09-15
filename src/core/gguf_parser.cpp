@@ -34,18 +34,18 @@ std::uint64_t checked_add(std::uint64_t lhs, std::uint64_t rhs, std::string_view
     return lhs + rhs;
 }
 
-void read_exact(std::istream& input, char* destination, std::streamsize size, const std::string& field_name) {
+void read_exact(std::istream& input, char* destination, std::streamsize size, std::string_view field_name, std::string_view suffix = "") {
     if (!input.read(destination, size)) {
-        throw std::runtime_error("Failed to read GGUF field: " + field_name);
+        throw std::runtime_error("Failed to read GGUF field: " + std::string(field_name) + std::string(suffix));
     }
 }
 
 template <typename T>
-T read_little_endian(std::istream& input, const std::string& field_name) {
+T read_little_endian(std::istream& input, std::string_view field_name, std::string_view suffix = "") {
     static_assert(std::is_unsigned_v<T>, "GGUF little-endian helper expects unsigned integer types");
 
     std::array<unsigned char, sizeof(T)> bytes{};
-    read_exact(input, reinterpret_cast<char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()), field_name);
+    read_exact(input, reinterpret_cast<char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()), field_name, suffix);
 
     T value = 0;
     for (std::size_t i = 0; i < bytes.size(); ++i) {
@@ -66,24 +66,24 @@ std::uint64_t align_to(std::uint64_t value, std::uint64_t alignment) {
 }
 
 std::string read_string(std::istream& input, std::string_view field_name) {
-    const std::uint64_t size = read_little_endian<std::uint64_t>(input, std::string(field_name) + ".size");
+    const std::uint64_t size = read_little_endian<std::uint64_t>(input, field_name, ".size");
     if (size > kMaxStringBytes) {
         throw std::runtime_error("GGUF string is too large: " + std::to_string(size));
     }
 
     std::string value(static_cast<std::size_t>(size), '\0');
     if (!value.empty()) {
-        read_exact(input, value.data(), static_cast<std::streamsize>(value.size()), std::string(field_name) + ".bytes");
+        read_exact(input, value.data(), static_cast<std::streamsize>(value.size()), field_name, ".bytes");
     }
     return value;
 }
 
-float read_float32(std::istream& input, const std::string& field_name) {
+float read_float32(std::istream& input, std::string_view field_name) {
     const std::uint32_t raw = read_little_endian<std::uint32_t>(input, field_name);
     return std::bit_cast<float>(raw);
 }
 
-double read_float64(std::istream& input, const std::string& field_name) {
+double read_float64(std::istream& input, std::string_view field_name) {
     const std::uint64_t raw = read_little_endian<std::uint64_t>(input, field_name);
     return std::bit_cast<double>(raw);
 }
@@ -93,9 +93,9 @@ GgufMetadataValue read_metadata_value(std::istream& input, GgufMetadataType type
 GgufMetadataValue read_array(std::istream& input) {
     GgufMetadataValue value;
     value.type = GgufMetadataType::Array;
-    value.array_element_type = static_cast<GgufMetadataType>(read_little_endian<std::uint32_t>(input, "metadata.array.element_type"));
+    value.array_element_type = static_cast<GgufMetadataType>(read_little_endian<std::uint32_t>(input, std::string_view("metadata.array.element_type")));
 
-    const std::uint64_t size = read_little_endian<std::uint64_t>(input, "metadata.array.size");
+    const std::uint64_t size = read_little_endian<std::uint64_t>(input, std::string_view("metadata.array.size"));
     if (size > kMaxArrayItems) {
         throw std::runtime_error("GGUF metadata array is too large: " + std::to_string(size));
     }
@@ -113,28 +113,28 @@ GgufMetadataValue read_metadata_value(std::istream& input, GgufMetadataType type
 
     switch (type) {
     case GgufMetadataType::Uint8:
-        value.unsigned_value = read_little_endian<std::uint8_t>(input, "metadata.uint8");
+        value.unsigned_value = read_little_endian<std::uint8_t>(input, std::string_view("metadata.uint8"));
         return value;
     case GgufMetadataType::Int8:
-        value.signed_value = std::bit_cast<std::int8_t>(read_little_endian<std::uint8_t>(input, "metadata.int8"));
+        value.signed_value = std::bit_cast<std::int8_t>(read_little_endian<std::uint8_t>(input, std::string_view("metadata.int8")));
         return value;
     case GgufMetadataType::Uint16:
-        value.unsigned_value = read_little_endian<std::uint16_t>(input, "metadata.uint16");
+        value.unsigned_value = read_little_endian<std::uint16_t>(input, std::string_view("metadata.uint16"));
         return value;
     case GgufMetadataType::Int16:
-        value.signed_value = std::bit_cast<std::int16_t>(read_little_endian<std::uint16_t>(input, "metadata.int16"));
+        value.signed_value = std::bit_cast<std::int16_t>(read_little_endian<std::uint16_t>(input, std::string_view("metadata.int16")));
         return value;
     case GgufMetadataType::Uint32:
-        value.unsigned_value = read_little_endian<std::uint32_t>(input, "metadata.uint32");
+        value.unsigned_value = read_little_endian<std::uint32_t>(input, std::string_view("metadata.uint32"));
         return value;
     case GgufMetadataType::Int32:
-        value.signed_value = std::bit_cast<std::int32_t>(read_little_endian<std::uint32_t>(input, "metadata.int32"));
+        value.signed_value = std::bit_cast<std::int32_t>(read_little_endian<std::uint32_t>(input, std::string_view("metadata.int32")));
         return value;
     case GgufMetadataType::Float32:
         value.floating_value = read_float32(input, "metadata.float32");
         return value;
     case GgufMetadataType::Bool:
-        value.bool_value = read_little_endian<std::uint8_t>(input, "metadata.bool") != 0;
+        value.bool_value = read_little_endian<std::uint8_t>(input, std::string_view("metadata.bool")) != 0;
         return value;
     case GgufMetadataType::String:
         value.string_value = read_string(input, "metadata.string");
@@ -142,10 +142,10 @@ GgufMetadataValue read_metadata_value(std::istream& input, GgufMetadataType type
     case GgufMetadataType::Array:
         return read_array(input);
     case GgufMetadataType::Uint64:
-        value.unsigned_value = read_little_endian<std::uint64_t>(input, "metadata.uint64");
+        value.unsigned_value = read_little_endian<std::uint64_t>(input, std::string_view("metadata.uint64"));
         return value;
     case GgufMetadataType::Int64:
-        value.signed_value = std::bit_cast<std::int64_t>(read_little_endian<std::uint64_t>(input, "metadata.int64"));
+        value.signed_value = std::bit_cast<std::int64_t>(read_little_endian<std::uint64_t>(input, std::string_view("metadata.int64")));
         return value;
     case GgufMetadataType::Float64:
         value.floating_value = read_float64(input, "metadata.float64");
@@ -293,9 +293,9 @@ GgufHeader GgufParser::read_header(const std::string& path) {
     }
 
     GgufHeader header;
-    header.version = read_little_endian<std::uint32_t>(input, "version");
-    header.tensor_count = read_little_endian<std::uint64_t>(input, "tensor_count");
-    header.metadata_kv_count = read_little_endian<std::uint64_t>(input, "metadata_kv_count");
+    header.version = read_little_endian<std::uint32_t>(input, std::string_view("version"));
+    header.tensor_count = read_little_endian<std::uint64_t>(input, std::string_view("tensor_count"));
+    header.metadata_kv_count = read_little_endian<std::uint64_t>(input, std::string_view("metadata_kv_count"));
 
     if (header.version < 2 || header.version > 3) {
         throw std::runtime_error("Unsupported GGUF version: " + std::to_string(header.version));
@@ -317,9 +317,9 @@ GgufFileInfo GgufParser::parse_file(const std::string& path) {
     }
 
     GgufFileInfo info;
-    info.header.version = read_little_endian<std::uint32_t>(input, "version");
-    info.header.tensor_count = read_little_endian<std::uint64_t>(input, "tensor_count");
-    info.header.metadata_kv_count = read_little_endian<std::uint64_t>(input, "metadata_kv_count");
+    info.header.version = read_little_endian<std::uint32_t>(input, std::string_view("version"));
+    info.header.tensor_count = read_little_endian<std::uint64_t>(input, std::string_view("tensor_count"));
+    info.header.metadata_kv_count = read_little_endian<std::uint64_t>(input, std::string_view("metadata_kv_count"));
 
     if (info.header.version < 2 || info.header.version > 3) {
         throw std::runtime_error("Unsupported GGUF version: " + std::to_string(info.header.version));
@@ -329,7 +329,7 @@ GgufFileInfo GgufParser::parse_file(const std::string& path) {
     for (std::uint64_t i = 0; i < info.header.metadata_kv_count; ++i) {
         GgufMetadataEntry entry;
         entry.key = read_string(input, "metadata.key");
-        const auto type = static_cast<GgufMetadataType>(read_little_endian<std::uint32_t>(input, "metadata.type"));
+        const auto type = static_cast<GgufMetadataType>(read_little_endian<std::uint32_t>(input, std::string_view("metadata.type")));
         entry.value = read_metadata_value(input, type);
         info.metadata.push_back(std::move(entry));
     }
@@ -339,18 +339,18 @@ GgufFileInfo GgufParser::parse_file(const std::string& path) {
         GgufTensorInfo tensor;
         tensor.name = read_string(input, "tensor.name");
 
-        const std::uint32_t rank = read_little_endian<std::uint32_t>(input, "tensor.rank");
+        const std::uint32_t rank = read_little_endian<std::uint32_t>(input, std::string_view("tensor.rank"));
         if (rank == 0 || rank > kMaxTensorRank) {
             throw std::runtime_error("Unsupported GGUF tensor rank " + std::to_string(rank) + " for tensor " + tensor.name);
         }
 
         tensor.dimensions.reserve(rank);
         for (std::uint32_t dimension = 0; dimension < rank; ++dimension) {
-            tensor.dimensions.push_back(read_little_endian<std::uint64_t>(input, "tensor.dimension"));
+            tensor.dimensions.push_back(read_little_endian<std::uint64_t>(input, std::string_view("tensor.dimension")));
         }
 
-        tensor.type = static_cast<GgmlTensorType>(read_little_endian<std::uint32_t>(input, "tensor.type"));
-        tensor.offset = read_little_endian<std::uint64_t>(input, "tensor.offset");
+        tensor.type = static_cast<GgmlTensorType>(read_little_endian<std::uint32_t>(input, std::string_view("tensor.type")));
+        tensor.offset = read_little_endian<std::uint64_t>(input, std::string_view("tensor.offset"));
         info.tensors.push_back(std::move(tensor));
     }
 

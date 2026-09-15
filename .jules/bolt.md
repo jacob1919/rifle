@@ -1,0 +1,3 @@
+## 2024-09-15 - Prevent string allocation on happy path in read functions
+**Learning:** High-frequency parsing paths constructing `std::string` objects (like for exception context `field_name + ".size"`) on the "happy path" will cause severe performance degradation due to unnecessary heap allocations. Using `std::string_view` alone doesn't prevent this if concatenation (`+`) still occurs outside the throw block.
+**Action:** Defer all string concatenation and `std::string` conversions strictly to the error handling path (e.g., inside the `throw` statement). Pass an optional `suffix` parameter (`std::string_view suffix = ""`) through the call stack to construct the final error message only when an error actually occurs.
