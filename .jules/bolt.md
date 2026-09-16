@@ -1,0 +1,3 @@
+## 2024-09-17 - Avoid happy-path string allocations in C++ parser
+**Learning:** In C++ parsing code loops, dynamically constructing strings (e.g., `std::string(field_name) + ".size"`) in the arguments to sub-functions creates significant instruction overhead (heap allocations) on the happy path, even if an exception is never thrown. The baseline showed 73M Ir, which was largely tied to string creation and destruction in `read_little_endian` calls.
+**Action:** Defer exception message formatting by separating the string parts (e.g. `field_name`, `suffix`) as `std::string_view` parameters into the parsing helpers. Only construct the complete `std::string` on the actual error path (inside the `if (error) throw ...` block). This reduced instructions to ~52M Ir.
