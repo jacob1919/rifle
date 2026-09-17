@@ -1,0 +1,3 @@
+## 2024-05-24 - Deferring String Concatenation to Cold Paths in C++ Parsers
+**Learning:** In high-frequency parsing paths (like reading headers or metadata arrays), accepting `const std::string&` parameters and concatenating strings on the happy path (e.g., `field_name + ".size"`) causes significant hidden overhead due to heap allocations. This overhead is heavily amplified when iterating over large datasets.
+**Action:** Always prefer `std::string_view` for read-only string parameters in hot paths. Defer string concatenation and materialization to `std::string` strictly to error handling paths (cold paths) inside exception constructors or error logs, passing the suffix as a separate `std::string_view` argument if necessary.
