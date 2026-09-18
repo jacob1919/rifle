@@ -1,0 +1,3 @@
+## 2024-09-18 - Deferring std::string allocation on happy path
+**Learning:** High-frequency parsing paths (like reading metadata in `gguf_parser.cpp`) can suffer significant overhead from `std::string` allocations when strings are concatenated merely for potential error contexts (e.g., `std::string(field_name) + ".size"`).
+**Action:** Use `std::string_view` for string parameters and default `suffix` arguments to defer concatenation to the error handling path (`throw`), avoiding allocations during normal execution. Be careful not to hardcode string literals during the replacement, which breaks observability.
