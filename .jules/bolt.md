@@ -1,0 +1,3 @@
+## 2024-05-24 - Defer std::string concatenations off the hot path
+**Learning:** In C++ inference/parsing codebases handling many small internal string constants (like field names in GGUF files), constructing `std::string` on the happy path (e.g., `std::string(field_name) + ".size"`) for potential error messages incurs significant heap allocation overhead. In this case, `read_metadata_value` accounted for ~14% of instructions primarily due to string copies.
+**Action:** Always prefer `std::string_view` for string parameters in high-frequency parsing paths. Defer all `std::string` allocations and concatenations strictly to the error handling path (e.g., inside the `throw` block or `if (!success)` block) to avoid unnecessary allocations when the read succeeds.
