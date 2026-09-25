@@ -1,0 +1,3 @@
+## 2024-10-24 - Defer std::string allocations on the parsing hot path
+**Learning:** Passing `const std::string&` with literal arguments causes hidden, repeated heap allocations on the hot path (like iterating over GGUF metadata or tensors). Standard tools like Valgrind callgrind can isolate these, showing significant Ir overhead from `malloc` and `free` caused by string constructions.
+**Action:** Use `std::string_view` for read-only string parameters on high-frequency paths to eliminate temporary string allocations, and explicitly defer any necessary concatenations (using `operator+`) to the error/throw blocks.
