@@ -1,0 +1,3 @@
+## 2024-09-30 - Remove string allocations in happy path
+**Learning:** In high-frequency parsing paths, string concatenations and allocations for error contexts (e.g., `field_name + ".size"`) can dominate execution time (constituting ~30% of total instruction count in this case) even on the 'happy path'.
+**Action:** Defer all string constructions and allocations (like context messages) strictly to the error handling path (e.g., inside `throw` statements). For `std::string` buffers meant to receive exact bytes, use `resize()` instead of zero-initializing with `\0` to prevent redundant CPU cycles.
