@@ -1,0 +1,3 @@
+## 2024-10-03 - String allocations in error paths
+**Learning:** High-frequency parser methods were implicitly constructing `std::string` objects and immediately performing string concatenation (e.g., `field_name + ".size"`) directly on the happy path to prepare error messages for exceptions that are rarely thrown. This resulted in significant and measurable heap allocation overhead.
+**Action:** Defer all string allocations to the actual error handling path. Use `std::string_view` for parameter passing. If a concatenated string is needed for an exception, introduce a separate `suffix` parameter (e.g., `std::string_view suffix = ""`) and perform the `std::string` casting and concatenation exclusively inside the `throw` statement block.
