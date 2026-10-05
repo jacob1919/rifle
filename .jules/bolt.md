@@ -1,0 +1,3 @@
+## 2023-10-05 - Avoid string concatenation on the happy path
+**Learning:** In high-frequency parsing paths (like reading fields from a GGUF file), constructing `std::string` objects on the happy path (e.g., for error context messages `std::string(field_name) + ".size"`) leads to significant heap allocations and performance degradation, even if the error never occurs.
+**Action:** Replace `const std::string& field_name` with `std::string_view field_name` to avoid implicit allocations from string literals. Defer string concatenation for error messages to the error-handling path (e.g., inside the `throw` statement) or use optional default `suffix` parameters instead of concatenating strings before calling internal functions.
