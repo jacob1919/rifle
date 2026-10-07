@@ -34,18 +34,18 @@ std::uint64_t checked_add(std::uint64_t lhs, std::uint64_t rhs, std::string_view
     return lhs + rhs;
 }
 
-void read_exact(std::istream& input, char* destination, std::streamsize size, const std::string& field_name) {
+void read_exact(std::istream& input, char* destination, std::streamsize size, std::string_view field_name, std::string_view suffix = "") {
     if (!input.read(destination, size)) {
-        throw std::runtime_error("Failed to read GGUF field: " + field_name);
+        throw std::runtime_error("Failed to read GGUF field: " + std::string(field_name) + std::string(suffix));
     }
 }
 
 template <typename T>
-T read_little_endian(std::istream& input, const std::string& field_name) {
+T read_little_endian(std::istream& input, std::string_view field_name, std::string_view suffix = "") {
     static_assert(std::is_unsigned_v<T>, "GGUF little-endian helper expects unsigned integer types");
 
-    std::array<unsigned char, sizeof(T)> bytes{};
-    read_exact(input, reinterpret_cast<char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()), field_name);
+    std::array<unsigned char, sizeof(T)> bytes;
+    read_exact(input, reinterpret_cast<char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()), field_name, suffix);
 
     T value = 0;
     for (std::size_t i = 0; i < bytes.size(); ++i) {
@@ -78,12 +78,12 @@ std::string read_string(std::istream& input, std::string_view field_name) {
     return value;
 }
 
-float read_float32(std::istream& input, const std::string& field_name) {
+float read_float32(std::istream& input, std::string_view field_name) {
     const std::uint32_t raw = read_little_endian<std::uint32_t>(input, field_name);
     return std::bit_cast<float>(raw);
 }
 
-double read_float64(std::istream& input, const std::string& field_name) {
+double read_float64(std::istream& input, std::string_view field_name) {
     const std::uint64_t raw = read_little_endian<std::uint64_t>(input, field_name);
     return std::bit_cast<double>(raw);
 }
