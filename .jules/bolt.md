@@ -1,0 +1,3 @@
+## 2024-10-13 - [Avoid String Allocations in High Frequency Happy Paths]
+**Learning:** In C++ parsing routines, passing `const std::string&` and executing runtime concatenations (e.g., `std::string(field_name) + ".size"`) on the "happy path" results in significant heap allocations and performance penalties, even for small strings, due to construction and copying overhead.
+**Action:** Prefer `std::string_view` for string parameters in high-frequency read functions. Introduce default parameters like `suffix = ""` to defer necessary string concatenations strictly to the error handling path (e.g., inside the `throw` statement), keeping the happy path allocation-free.
