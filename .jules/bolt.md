@@ -1,0 +1,3 @@
+## 2026-10-14 - Defer String Concatenation and Use string_view on Happy Paths
+**Learning:** In high-frequency parsing paths, constructing strings (e.g., via `const std::string&` parameters) or concatenating strings (e.g., `field_name + ".size"`) on the happy path causes excessive heap allocations and significant performance degradation. Removing zero-initialization from buffers immediately overwritten by read operations further reduces redundant CPU cycles.
+**Action:** Use `std::string_view` for read-only string parameters. Defer any `std::string` construction or concatenation (such as for error messages) strictly to error-handling paths. Omit zero-initialization (e.g., `{}`) on buffers that will be fully overwritten.
