@@ -1,0 +1,3 @@
+## 2024-05-30 - GGUF Parser String Allocations
+**Learning:** High-frequency binary parsing methods that accept `const std::string&` and construct new strings for contextual errors (like `field_name + ".size"`) on the happy path cause immense instruction count overhead from heap allocations and freeing.
+**Action:** Always replace `const std::string&` with `std::string_view` for field/context names in parsers, and strictly defer string constructions/concatenations to the error handling paths (e.g. inside `throw`). Split single context arguments into `field_name` and `suffix` to maintain 100% observability while avoiding allocations.
