@@ -1,0 +1,3 @@
+## 2024-05-24 - Remove string allocations in happy path
+**Learning:** In C++ parsing applications dealing with variable length field names, using `const std::string&` in inner loop functions combined with inline string concatenation (e.g., `std::string(field_name) + ".size"`) forces frequent heap allocations on the happy path. String concatenation should strictly be deferred to error handling paths where exceptions are thrown.
+**Action:** Always prefer `std::string_view` for string parameters in high-frequency parsing paths and only perform explicit `std::string` conversions and concatenations inside `throw` statements or logging routines.
