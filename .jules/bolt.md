@@ -1,0 +1,3 @@
+## 2024-10-19 - Removed string allocations in happy path
+**Learning:** High-frequency parsing paths constructing `std::string` for potential error messages (like `field_name + ".size"`) cause significant heap allocation overhead on the happy path. String concatenation and memory allocation (`malloc`/`free`) dominate instruction counts when running many metadata evaluations.
+**Action:** Replaced `const std::string&` with `std::string_view` for field name parameters and introduced a `std::string_view suffix = ""` parameter. This avoids constructing strings dynamically in the happy path and delegates string creation strictly to the error path (`throw std::runtime_error`).
