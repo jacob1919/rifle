@@ -1,0 +1,3 @@
+## 2024-10-24 - Remove string allocations in happy path
+**Learning:** Avoid constructing or concatenating `std::string`s on the happy path, particularly in high-frequency parsing paths like `read_little_endian`, as it leads to unnecessary heap allocations. Deferring string concatenation to the error handling path (e.g., inside a `throw` statement) by using `std::string_view` parameters and default arguments significantly reduces overhead.
+**Action:** When implementing parsing or similar high-frequency logic, pass string arguments as `std::string_view` and delay any `std::string` creation or modification until an error actually occurs and the string is needed for the exception message.
