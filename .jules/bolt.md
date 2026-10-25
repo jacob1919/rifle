@@ -1,0 +1,3 @@
+## 2024-10-25 - Avoid String Allocations on the Happy Path
+**Learning:** In C++ parsers handling high-frequency byte reads (like reading 10,000+ fields), constructing `std::string` on the happy path for error context (e.g., `field_name + ".size"`) or zero-initializing strings before reading raw bytes (`std::string(size, '\0')`) causes massive CPU overhead due to heap allocations and memset.
+**Action:** Use `std::string_view` for passing field names. When an error context requires concatenation, defer the allocation strictly to the error path (e.g., pass a `suffix` view to the helper and concatenate only inside the `throw` statement). For raw byte string reading, use default construction followed by `.resize(size)` to avoid zero-initialization.
