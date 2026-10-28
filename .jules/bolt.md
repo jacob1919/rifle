@@ -1,0 +1,3 @@
+## 2024-10-28 - Zero-initialization overhead in C++ `std::string`
+**Learning:** `std::string value(size, '\0')` eagerly writes zeroes to the entire allocated memory block. When this string is immediately used as a buffer for raw IO reads (like `istream::read`), the zero-initialization is entirely redundant and wastes CPU cycles, especially for large strings or in tight parsing loops.
+**Action:** Use a default-constructed string followed by `value.resize(size)`. While `resize` in C++17/20 may still zero-initialize, avoiding explicit character fill constructors prevents additional overhead. If using C++23, prefer `resize_and_overwrite` for zero-overhead uninitialized buffer allocations.
