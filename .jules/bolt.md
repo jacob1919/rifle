@@ -1,0 +1,3 @@
+## 2024-10-31 - Avoiding String Allocation in GGUF Field Reads
+**Learning:** In highly frequent read paths like `read_string` and `read_little_endian`, constructing dynamic strings just to pass as error context (e.g., `field_name + ".size"`) on the "happy path" incurs unnecessary heap allocations. Using `std::string_view` for `field_name` and an optional `suffix` defers these string concatenations entirely to the `throw` error branch, leading to fewer allocations and measurable `Ir` reductions in `callgrind`.
+**Action:** When adding context to error messages in tight loops or parsing code, never construct the full string context in the normal flow. Add default string or string_view suffix parameters to helper functions and concatenate only when throwing.
