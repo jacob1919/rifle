@@ -44,7 +44,7 @@ template <typename T>
 T read_little_endian(std::istream& input, const std::string& field_name) {
     static_assert(std::is_unsigned_v<T>, "GGUF little-endian helper expects unsigned integer types");
 
-    std::array<unsigned char, sizeof(T)> bytes{};
+    std::array<unsigned char, sizeof(T)> bytes;
     read_exact(input, reinterpret_cast<char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()), field_name);
 
     T value = 0;
