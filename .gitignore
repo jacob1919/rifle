@@ -54,3 +54,5 @@ models/
 *.bin
 *.safetensors
 *.onnx
+venv/
+build/
