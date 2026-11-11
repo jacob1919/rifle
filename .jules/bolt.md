@@ -1,0 +1,3 @@
+## 2026-11-11 - Remove string allocations in happy path of GGUF parser
+**Learning:** String allocations during tensor loop parsing operations (e.g. `std::string(field_name) + ".size"`) in C++ are extremely expensive and unneeded unless actually throwing an error. Zero-initialization of memory blocks (e.g., `std::array<unsigned char, N> bytes{}`) also adds overhead.
+**Action:** When creating high-frequency parsers, pass `std::string_view` down to error handling blocks instead of allocating `std::string` in the happy path. Avoid zero-initializing memory that is going to be immediately and fully overwritten.
